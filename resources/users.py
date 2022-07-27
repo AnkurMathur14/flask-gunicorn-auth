@@ -1,11 +1,11 @@
 import json
+import uuid
 import flask_restful
 from flask import request, jsonify
 from six.moves import http_client
-from werkzeug.security import generate_password_hash, check_password_hash
 
+from models.users import UserManager
 from utilities.validator import validate_user
-from utilities.utils import save_users, get_users
 from utilities.auth_middleware import token_required
 
 # Resources
@@ -15,7 +15,7 @@ class UserList(flask_restful.Resource):
         """
         Method to get all users.
         """
-        users = get_users()
+        users = UserManager().get_all()
         if not users:
             return {
                 "message": "No user exists",
@@ -49,77 +49,72 @@ class UserList(flask_restful.Resource):
                 "error": msg
             }, http_client.BAD_REQUEST
             
-        users = get_users()
-        for user in users:
-            if user.get("username") == data.get("username"):
-                return {
-                    "message": "User already exists",
-                    "data": None,
-                    "error": "Conflict"
-                }, http_client.BAD_REQUEST
-                
-        data["password"] = generate_password_hash(data.get("password"))
-        users.append(data)
-        save_users(users)
+        user = UserManager().create(**data)
+        if not user:
+            return {
+                "message": "User already exists",
+                "data": None,
+                "error": "Conflict"
+            }, http_client.BAD_REQUEST
         return {
-                "message": "Successfully created new user",
-                "data": data
+                "message": "The user has been created",
+                "data": user
             }, http_client.CREATED
 
 
 class User(flask_restful.Resource):
     @token_required
-    def get(self, user_name):
+    def get(self, user_id):
         """
         Method to get a particular user.
         """
-        users = get_users()
-        for user in users:
-            if user.get("username") == user_name:
-                return {
-                    "message": "Successfully fetched user details",
-                    "data": user
-                }, http_client.OK
-        return {
+        user = UserManager().get_by_id(user_id)
+        if not user:
+            return {
                 "message": "User does not exists",
                 "data": None,
                 "error": "Not found"
             }, http_client.NOT_FOUND
 
+        return {
+            "message": "Successfully fetched user details",
+            "data": user
+        }, http_client.OK
+
+
     @token_required
-    def put(self, user_name):
+    def put(self, user_id):
         """
         Method to modify an exiting user.
         """
-        users = get_users()
-        for user in users:
-            if user.get("username") == user_name:
-                return {
-                    "message": "Successfully fetched user details",
-                    "data": user
-                }, http_client.OK
-        return {
+        user = UserManager().disable_account(user_id)
+        if not user:
+            return {
                 "message": "User does not exists",
                 "data": None,
                 "error": "Not found"
             }, http_client.NOT_FOUND
+
+        return {
+            "message": "The user has been disabled",
+            "data": user
+        }, http_client.OK
         
+
     @token_required
-    def delete(self, user_name):
+    def delete(self, user_id):
         """
         Method to delete an exiting user.
         """
-        users = get_users()
-        for index, user in enumerate(users):
-            if user.get("username") == user_name:
-                del users[index]
-                save_users(users)
-                return {
-                    "message": "Successfully deleted the user",
-                    "data": user
-                }, http_client.OK
-        return {
+        user = UserManager().delete(user_id)
+        if not user:
+            return {
                 "message": "User does not exists",
                 "data": None,
                 "error": "Not found"
             }, http_client.NOT_FOUND
+
+        return {
+            "message": "The user has been deleted",
+            "data": user
+        }, http_client.OK

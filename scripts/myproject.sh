@@ -20,14 +20,14 @@
 
 . /etc/init.d/functions
 
-PIDFILE=/var/run/flask-gunicorn-auth.pid
-CMD=/home/flask-gunicorn-auth/env/bin/gunicorn
+PIDFILE=/var/run/myproject.pid
+CMD=/home/flask-gunicorn-auth/flask-gunicorn-authenv/bin/gunicorn
 SDSLIBS=/home/flask-gunicorn-auth/
 ARGS="--pid $PIDFILE --bind 127.0.0.1:5000 -D app:app"
 
 
 do_start() {
-    echo -n "Starting flask-gunicorn-auth service: "
+    echo -n "Starting myproject service: "
     export PYTHONPATH=${SDSLIBS}
     daemon --pidfile=$PIDFILE $CMD $ARGS
     RETVAL=$?
@@ -36,7 +36,7 @@ do_start() {
 }
 
 do_stop() {
-    echo -n "Stopping flask-gunicorn-auth service: "
+    echo -n "Stopping myproject service: "
     killproc -p $PIDFILE $CMD
     RETVAL=$?
     echo
